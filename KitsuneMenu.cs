@@ -306,11 +306,18 @@ namespace Menu
 
         public static void DrawMenu(CCSPlayerController controller, MenuBase menu, MenuItem? selectedItem)
         {
-            var html = "";
-
             if (!Menus.TryGetValue(controller, out var menus))
                 return;
 
+            // Use SwiftlyS2-style rendering if enabled
+            if (menu.UseSwiftlyStyle)
+            {
+                DrawMenuSwiftlyStyle(controller, menu, selectedItem);
+                return;
+            }
+
+            // Legacy style rendering
+            var html = "";
             html += $"\u00A0{menu.Title}";
 
             bool hasSelectableItems = menu.Items.Any(item => item.Type is not (MenuItemType.Spacer or MenuItemType.Text));
@@ -351,6 +358,116 @@ namespace Menu
 
                 if (hasSelectableItems && selectedItem != null && menuItem == selectedItem)
                     html += menu.Cursor[(int)MenuCursor.Right];
+            }
+
+            controller.PrintToCenterHtml(html);
+        }
+
+        public static void DrawMenuSwiftlyStyle(CCSPlayerController controller, MenuBase menu, MenuItem? selectedItem)
+        {
+            if (!Menus.TryGetValue(controller, out var menus))
+                return;
+
+            var guideLineColor = menu.GuideLineColor;
+            var navigationColor = menu.NavigationMarkerColor;
+            var footerColor = menu.FooterColor;
+            var titleColor = menu.TitleColor;
+            var guideLine = $"<font class='fontSize-s' color='{guideLineColor}'>{menu.GuideLine}</font>";
+
+            bool hasSelectableItems = menu.Items.Any(item => item.Type is not (MenuItemType.Spacer or MenuItemType.Text));
+            List<MenuItem> selectableItems = menu.Items.Where(i => i.Type is not (MenuItemType.Spacer or MenuItemType.Text)).ToList();
+            int currentIndex = selectedItem != null ? selectableItems.IndexOf(selectedItem) + 1 : 0;
+            int totalItems = selectableItems.Count;
+
+            // Build Title Section with gradient (SwiftlyS2 style - cyan gradient)
+            var html = "";
+            if (!menu.HideTitle)
+            {
+                // Apply gradient to title - default cyan to white like SwiftlyS2
+                var gradientEnd = menu.TitleGradientEndColor ?? "#96d5ff";
+                html += $"<font class='fontSize-m'>{HtmlGradient.GenerateGradientText(menu.Title.Value ?? "Menu", titleColor, gradientEnd)}</font>";
+
+                if (menu.ShowItemCount && totalItems > 0)
+                {
+                    html += $"<font class='fontSize-s' color='#888888'> [{currentIndex}/{totalItems}]</font>";
+                }
+                html += "<br>" + guideLine + "<br>";
+            }
+
+            // Build Menu Items with proper colors
+            foreach (var menuItem in menu.Items)
+            {
+                // Skip spacer and text items in SwiftlyStyle
+                if (menuItem.Type == MenuItemType.Spacer)
+                {
+                    continue;
+                }
+
+                // Skip text items that look like footers (they're handled separately)
+                if (menuItem.Type == MenuItemType.Text)
+                {
+                    continue;
+                }
+
+                // Navigation marker for selected item (yellow/gold like SwiftlyS2)
+                bool isSelected = hasSelectableItems && selectedItem != null && menuItem == selectedItem;
+                if (isSelected)
+                {
+                    html += $"<font color='{navigationColor}' class='fontSize-sm'>{menu.NavigationPrefix} </font>";
+                }
+                else if (hasSelectableItems)
+                {
+                    html += "\u00A0\u00A0\u00A0 "; // Indent non-selected items
+                }
+
+                // Apply item color based on selection state
+                var itemColor = isSelected ? menu.SelectedItemColor : menu.DefaultItemColor;
+                html += $"<font color='{itemColor}'>";
+
+                // Add item content with proper styling
+                if (menuItem.Head != null)
+                    html += menuItem.Head;
+
+                switch (menuItem.Type)
+                {
+                    case MenuItemType.Choice or MenuItemType.ChoiceBool or MenuItemType.Button:
+                        html += FormatValues(menu, menuItem, selectedItem!);
+                        break;
+
+                    case MenuItemType.Slider:
+                        html += FormatSlider(menu, menuItem);
+                        break;
+
+                    case MenuItemType.Input:
+                        html += FormatInput(menu, menuItem, selectedItem!);
+                        break;
+
+                    case MenuItemType.Bool:
+                        html += FormatBool(menu, menuItem);
+                        break;
+                }
+
+                if (menuItem.Tail != null)
+                    html += menuItem.Tail;
+
+                html += "</font><br>";
+            }
+
+            // Comment Section (like SwiftlyS2 - always shows between items and footer)
+            html += guideLine + "<br>";
+            if (!string.IsNullOrWhiteSpace(menu.DefaultComment))
+            {
+                html += $"<font class='fontSize-s' color='#FFFFFF'>{menu.DefaultComment}</font><br>";
+            }
+
+            // Footer with keybind instructions (use config values)
+            if (!menu.HideFooter)
+            {
+                html += $"<font class='fontSize-s' color='#FFFFFF'>";
+                html += $"<font color='{footerColor}'>Move:</font> {_config.Up}/{_config.Down}";
+                html += $" | <font color='{footerColor}'>Use:</font> {_config.Select}";
+                html += $" | <font color='{footerColor}'>Exit:</font> {_config.Exit}";
+                html += "</font>";
             }
 
             controller.PrintToCenterHtml(html);
@@ -598,11 +715,8 @@ namespace Menu
 
             void CreateMenu()
             {
-                menu = new MenuBase(new MenuValue($"{title}{(allItems.Count > visibleItems ? $" <font class=\"fontSize-s\" color=\"#FFFFFF\">{Translator.GetTranslation("Items")} {filterList.IndexOf(allItems[currentIndex]) + 1}/{filterList.Count}</font>" : "")}")
-                {
-                    Prefix = "<font class=\"fontSize-m\" color=\"#ff3333\">",
-                    Suffix = "</font>"
-                })
+                // Start with plain title - SwiftlyStyle handles formatting separately
+                menu = new MenuBase(new MenuValue(title))
                 {
                     Option = currentIndex,
                 };
@@ -640,11 +754,20 @@ namespace Menu
             void UpdateMenuView()
             {
                 menu.Items.Clear();
-                menu.Title = new MenuValue($"{title}{(allItems.Count > visibleItems ? $" <font class=\"fontSize-s\" color=\"#FFFFFF\">{Translator.GetTranslation("Items")} {filterList.IndexOf(allItems[currentIndex]) + 1}/{filterList.Count}</font>" : "")}")
+                
+                // Use plain title for SwiftlyStyle (it handles item count separately with proper formatting)
+                if (menu.UseSwiftlyStyle)
                 {
-                    Prefix = "<font class=\"fontSize-m\" color=\"#ff3333\">",
-                    Suffix = "<font color=\"#FFFFFF\" class=\"fontSize-sm\">"
-                };
+                    menu.Title = new MenuValue(title);
+                }
+                else
+                {
+                    menu.Title = new MenuValue($"{title}{(allItems.Count > visibleItems ? $" <font class=\"fontSize-s\" color=\"#FFFFFF\">{Translator.GetTranslation("Items")} {filterList.IndexOf(allItems[currentIndex]) + 1}/{filterList.Count}</font>" : "")}")
+                    {
+                        Prefix = "<font class=\"fontSize-m\" color=\"#ff3333\">",
+                        Suffix = "<font color=\"#FFFFFF\" class=\"fontSize-sm\">"
+                    };
+                }
 
                 int visibleCount = 0;
                 for (int i = startIndex; i < allItems.Count && visibleCount < visibleItems; i++)
@@ -674,10 +797,14 @@ namespace Menu
 
                 menu.AddItem(new MenuItem(MenuItemType.Spacer));
 
-                // if (!isSubmenu && !disableDeveloper)
-                menu.AddItem(new MenuItem(MenuItemType.Text, new MenuValue($"Developed by <font color=\"#ffc0cb\">zhw1nq</font>") { Prefix = "<font color=\"#FFFFFF\" class=\"fontSize-s\">", Suffix = "</font>" }));
+                // Only add footer items if NOT using SwiftlyStyle (SwiftlyStyle has its own footer)
+                if (!menu.UseSwiftlyStyle)
+                {
+                    // if (!isSubmenu && !disableDeveloper)
+                    menu.AddItem(new MenuItem(MenuItemType.Text, new MenuValue($"Developed by <font color=\"#ffc0cb\">zhw1nq</font>") { Prefix = "<font color=\"#FFFFFF\" class=\"fontSize-s\">", Suffix = "</font>" }));
 
-                menu.AddItem(new MenuItem(MenuItemType.Text, new MenuValue(isSubmenu ? Translator.GetTranslation("FooterSubMenu") : Translator.GetTranslation("FooterMain")) { Prefix = "<font color=\"#ff3333\" class=\"fontSize-s\">", Suffix = "<font color=\"#FFFFFF\">" }));
+                    menu.AddItem(new MenuItem(MenuItemType.Text, new MenuValue(isSubmenu ? Translator.GetTranslation("FooterSubMenu") : Translator.GetTranslation("FooterMain")) { Prefix = "<font color=\"#ff3333\" class=\"fontSize-s\">", Suffix = "<font color=\"#FFFFFF\">" }));
+                }
 
                 MenuItem? selectedItem = null;
                 if (filterList.Count > 0)
