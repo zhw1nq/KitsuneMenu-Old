@@ -423,9 +423,9 @@ namespace Menu
                 if (isSelected)
                 {
                     // Get item text and apply gradient with smaller font
-                    var itemText = GetMenuItemText(menu, menuItem, selectedItem);
+                    var selectedItemText = GetMenuItemText(menu, menuItem, selectedItem);
                     html.Append("<font class='fontSize-sm'>");
-                    html.Append(HtmlGradient.GenerateGradientText(itemText, "#FFFFFF", "#FF69B4"));
+                    html.Append(HtmlGradient.GenerateGradientText(selectedItemText, "#FFFFFF", "#FF69B4"));
                     html.Append("</font>");
                     if (menuItem.Tail != null)
                         html.Append(menuItem.Tail);
@@ -433,26 +433,14 @@ namespace Menu
                     continue;
                 }
                 
-                html.Append($"<font color='#FFFFFF' class='fontSize-sm'>");
-
-                if (menuItem.Head != null)
-                    html.Append(menuItem.Head);
-
-                // Format based on item type
-                html.Append(menuItem.Type switch
-                {
-                    MenuItemType.Choice or MenuItemType.ChoiceBool or MenuItemType.Button 
-                        => FormatValues(menu, menuItem, selectedItem!),
-                    MenuItemType.Slider => FormatSlider(menu, menuItem),
-                    MenuItemType.Input => FormatInput(menu, menuItem, selectedItem!),
-                    MenuItemType.Bool => FormatBool(menu, menuItem),
-                    _ => ""
-                });
+                // Use scrolled text for non-selected items too
+                var itemText = GetMenuItemText(menu, menuItem, selectedItem);
+                html.Append($"<font color='#FFFFFF' class='fontSize-sm'>{itemText}</font>");
 
                 if (menuItem.Tail != null)
                     html.Append(menuItem.Tail);
 
-                html.Append("</font><br>");
+                html.Append("<br>");
             }
 
             // ===== BRANDING SECTION =====
@@ -505,6 +493,7 @@ namespace Menu
 
         /// <summary>
         /// Gets the plain text content of a menu item for gradient rendering.
+        /// Applies scrolling animation if text is too long.
         /// </summary>
         private static string GetMenuItemText(MenuBase menu, MenuItem menuItem, MenuItem? selectedItem)
         {
@@ -526,7 +515,8 @@ namespace Menu
                 _ => ""
             };
 
-            return text;
+            // Apply text scrolling for long text (max 25 chars)
+            return TextScroller.GetScrolledText(text, 25);
         }
 
         private static string GetPlainTextFromValues(MenuItem menuItem)
