@@ -55,6 +55,33 @@ namespace Menu
 		public string BackSound { get; set; } = SOUND_BACK;
 		public string ExitSound { get; set; } = SOUND_EXIT;
 
+		// ===== SwiftlyS2 Style Configuration =====
+		
+		// Title Configuration
+		public string TitleColor { get; set; } = "#FFFFFF";
+		public string TitleGradientEndColor { get; set; } = "#96d5ff";
+		public bool ShowItemCount { get; set; } = true;
+		public bool HideTitle { get; set; } = false;
+		
+		// Guide Line
+		public string GuideLine { get; set; } = "──────────────────────────";
+		public string GuideLineColor { get; set; } = "#FFFFFF";
+		
+		// Navigation
+		public string NavigationPrefix { get; set; } = "►";
+		public string NavigationMarkerColor { get; set; } = "#FFFFFF";
+		
+		// Item Colors
+		public string DefaultItemColor { get; set; } = "#00FF00";
+		public string SelectedItemColor { get; set; } = "#FF69B4";
+		
+		// Footer
+		public string FooterColor { get; set; } = "#FF0000";
+		public bool HideFooter { get; set; } = false;
+		
+		// Comment/Branding
+		public string DefaultComment { get; set; } = "";
+
 		// Cached button values
 		private ulong _selectButton;
 		private ulong _backButton;
@@ -108,6 +135,21 @@ namespace Menu
 					DisabledSound = config.DisabledSound ?? SOUND_DISABLED;
 					BackSound = config.BackSound ?? SOUND_BACK;
 					ExitSound = config.ExitSound ?? SOUND_EXIT;
+
+					// Load SwiftlyS2 style configurations
+					TitleColor = config.TitleColor ?? "#FFFFFF";
+					TitleGradientEndColor = config.TitleGradientEndColor ?? "#96d5ff";
+					ShowItemCount = config.ShowItemCount;
+					HideTitle = config.HideTitle;
+					GuideLine = config.GuideLine ?? "──────────────────────────";
+					GuideLineColor = config.GuideLineColor ?? "#FFFFFF";
+					NavigationPrefix = config.NavigationPrefix ?? "►";
+					NavigationMarkerColor = config.NavigationMarkerColor ?? "#FFFFFF";
+					DefaultItemColor = config.DefaultItemColor ?? "#00FF00";
+					SelectedItemColor = config.SelectedItemColor ?? "#FF69B4";
+					FooterColor = config.FooterColor ?? "#FF0000";
+					HideFooter = config.HideFooter;
+					DefaultComment = config.DefaultComment ?? "";
 				}
 			}
 			catch (Exception ex)
@@ -184,27 +226,48 @@ namespace Menu
 
 	// !!! To apply changes, restart the server as CSS only reload shared things when restarted !!!
 
-    // Button to select menu items
+    // ===== BUTTON CONFIGURATION =====
     ""Select"": ""Jump"",
-
-    // Button to go back in submenus
     ""Back"": ""Speed"",
-
-    // Navigation buttons
     ""Up"": ""Forward"",
     ""Down"": ""Back"",
     ""Left"": ""Moveleft"",
     ""Right"": ""Moveright"",
-
-    // Exit menu button
     ""Exit"": ""Scoreboard"",
 
-    // Sound configurations
+    // ===== SOUND CONFIGURATION =====
     ""ScrollSound"": ""sounds/ui_sounds/uif/01_default_click_popup.vsnd_c"",
     ""ClickSound"": ""sounds/ui_sounds/uif/01_default_select.vsnd_c"",
     ""DisabledSound"": ""sounds/ui_sounds/uif/01_default_click_popup_close.vsnd_c"",
     ""BackSound"": ""sounds/ui_sounds/uif/01_default_click_popup_close.vsnd_c"",
-    ""ExitSound"": ""sounds/ui_sounds/uif/10_chanui_vvip_gift_01.vsnd_c""
+    ""ExitSound"": ""sounds/ui_sounds/uif/10_chanui_vvip_gift_01.vsnd_c"",
+
+    // ===== SWIFTLYS2 STYLE CONFIGURATION =====
+    
+    // Title settings
+    ""TitleColor"": ""#FFFFFF"",
+    ""TitleGradientEndColor"": ""#96d5ff"",
+    ""ShowItemCount"": true,
+    ""HideTitle"": false,
+    
+    // Guide line (visual separator)
+    ""GuideLine"": ""──────────────────────────"",
+    ""GuideLineColor"": ""#FFFFFF"",
+    
+    // Navigation marker
+    ""NavigationPrefix"": ""►"",
+    ""NavigationMarkerColor"": ""#FFFFFF"",
+    
+    // Item colors
+    ""DefaultItemColor"": ""#00FF00"",
+    ""SelectedItemColor"": ""#FF69B4"",
+    
+    // Footer settings
+    ""FooterColor"": ""#FF0000"",
+    ""HideFooter"": false,
+    
+    // Comment/Branding (leave empty for no comment)
+    ""DefaultComment"": """"
 }";
 
 			try

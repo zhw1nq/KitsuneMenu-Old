@@ -40,6 +40,51 @@ namespace Menu
         }
 
         /// <summary>
+        /// Generates HTML text with 3-color gradient effect (e.g., Green → Aqua → White).
+        /// </summary>
+        public static string GenerateThreeColorGradient(string text, string color1, string color2, string color3)
+        {
+            if (string.IsNullOrEmpty(text))
+                return text;
+
+            if (text.Length == 1)
+                return $"<font color='{color1}'>{text}</font>";
+
+            var rgb1 = ParseHexColor(color1);
+            var rgb2 = ParseHexColor(color2);
+            var rgb3 = ParseHexColor(color3);
+
+            var result = "";
+            int halfLen = text.Length / 2;
+
+            for (int i = 0; i < text.Length; i++)
+            {
+                int r, g, b;
+                if (i < halfLen)
+                {
+                    // First half: color1 → color2
+                    float t = halfLen > 0 ? (float)i / halfLen : 0;
+                    r = (int)(rgb1.r + (rgb2.r - rgb1.r) * t);
+                    g = (int)(rgb1.g + (rgb2.g - rgb1.g) * t);
+                    b = (int)(rgb1.b + (rgb2.b - rgb1.b) * t);
+                }
+                else
+                {
+                    // Second half: color2 → color3
+                    float t = (text.Length - halfLen) > 0 ? (float)(i - halfLen) / (text.Length - halfLen) : 0;
+                    r = (int)(rgb2.r + (rgb3.r - rgb2.r) * t);
+                    g = (int)(rgb2.g + (rgb3.g - rgb2.g) * t);
+                    b = (int)(rgb2.b + (rgb3.b - rgb2.b) * t);
+                }
+
+                var color = $"#{r:X2}{g:X2}{b:X2}";
+                result += $"<font color='{color}'>{text[i]}</font>";
+            }
+
+            return result;
+        }
+
+        /// <summary>
         /// Generates HTML text with rainbow gradient effect.
         /// </summary>
         /// <param name="text">The text to apply rainbow gradient to</param>

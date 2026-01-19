@@ -363,114 +363,186 @@ namespace Menu
             controller.PrintToCenterHtml(html);
         }
 
+        /// <summary>
+        /// Renders menu using SwiftlyS2-style layout with gradient title, colored items, and footer.
+        /// </summary>
         public static void DrawMenuSwiftlyStyle(CCSPlayerController controller, MenuBase menu, MenuItem? selectedItem)
         {
             if (!Menus.TryGetValue(controller, out var menus))
                 return;
 
+            var html = new System.Text.StringBuilder();
+            
+            // Configuration
             var guideLineColor = menu.GuideLineColor;
             var navigationColor = menu.NavigationMarkerColor;
             var footerColor = menu.FooterColor;
             var titleColor = menu.TitleColor;
             var guideLine = $"<font class='fontSize-s' color='{guideLineColor}'>{menu.GuideLine}</font>";
 
-            bool hasSelectableItems = menu.Items.Any(item => item.Type is not (MenuItemType.Spacer or MenuItemType.Text));
-            List<MenuItem> selectableItems = menu.Items.Where(i => i.Type is not (MenuItemType.Spacer or MenuItemType.Text)).ToList();
+            // Calculate item counts
+            var selectableItems = menu.Items.Where(i => i.Type is not (MenuItemType.Spacer or MenuItemType.Text)).ToList();
             int currentIndex = selectedItem != null ? selectableItems.IndexOf(selectedItem) + 1 : 0;
             int totalItems = selectableItems.Count;
+            bool hasSelectableItems = totalItems > 0;
 
-            // Build Title Section with gradient (SwiftlyS2 style - cyan gradient)
-            var html = "";
+            // ===== TITLE SECTION =====
             if (!menu.HideTitle)
             {
-                // Apply gradient to title - default cyan to white like SwiftlyS2
-                var gradientEnd = menu.TitleGradientEndColor ?? "#96d5ff";
-                html += $"<font class='fontSize-m'>{HtmlGradient.GenerateGradientText(menu.Title.Value ?? "Menu", titleColor, gradientEnd)}</font>";
+                var titleText = menu.Title.Value ?? "Menu";
+                // Green → Aqua → White gradient
+                html.Append($"<font class='fontSize-m'>{HtmlGradient.GenerateThreeColorGradient(titleText, "#00FF00", "#00FFFF", "#FFFFFF")}</font>");
 
                 if (menu.ShowItemCount && totalItems > 0)
                 {
-                    html += $"<font class='fontSize-s' color='#888888'> [{currentIndex}/{totalItems}]</font>";
+                    html.Append($"<font class='fontSize-s' color='#888888'> [{currentIndex}/{totalItems}]</font>");
                 }
-                html += "<br>" + guideLine + "<br>";
+                html.Append("<br>").Append(guideLine).Append("<br>");
             }
 
-            // Build Menu Items with proper colors
+            // ===== MENU ITEMS =====
             foreach (var menuItem in menu.Items)
             {
-                // Skip spacer and text items in SwiftlyStyle
-                if (menuItem.Type == MenuItemType.Spacer)
-                {
+                // Skip spacer and text items
+                if (menuItem.Type is MenuItemType.Spacer or MenuItemType.Text)
                     continue;
-                }
 
-                // Skip text items that look like footers (they're handled separately)
-                if (menuItem.Type == MenuItemType.Text)
-                {
-                    continue;
-                }
-
-                // Navigation marker for selected item (yellow/gold like SwiftlyS2)
                 bool isSelected = hasSelectableItems && selectedItem != null && menuItem == selectedItem;
+
+                // Navigation marker
                 if (isSelected)
                 {
-                    html += $"<font color='{navigationColor}' class='fontSize-sm'>{menu.NavigationPrefix} </font>";
+                    html.Append($"<font color='{navigationColor}' class='fontSize-sm'>{menu.NavigationPrefix} </font>");
                 }
-                else if (hasSelectableItems)
+                else
                 {
-                    html += "\u00A0\u00A0\u00A0 "; // Indent non-selected items
+                    html.Append("\u00A0\u00A0\u00A0 ");
                 }
 
-                // Apply item color based on selection state
-                var itemColor = isSelected ? menu.SelectedItemColor : menu.DefaultItemColor;
-                html += $"<font color='{itemColor}'>";
+                // Item content with color - white for non-selected, gradient for selected
+                if (isSelected)
+                {
+                    // Get item text and apply gradient with smaller font
+                    var itemText = GetMenuItemText(menu, menuItem, selectedItem);
+                    html.Append("<font class='fontSize-sm'>");
+                    html.Append(HtmlGradient.GenerateGradientText(itemText, "#FFFFFF", "#FF69B4"));
+                    html.Append("</font>");
+                    if (menuItem.Tail != null)
+                        html.Append(menuItem.Tail);
+                    html.Append("<br>");
+                    continue;
+                }
+                
+                html.Append($"<font color='#FFFFFF' class='fontSize-sm'>");
 
-                // Add item content with proper styling
                 if (menuItem.Head != null)
-                    html += menuItem.Head;
+                    html.Append(menuItem.Head);
 
-                switch (menuItem.Type)
+                // Format based on item type
+                html.Append(menuItem.Type switch
                 {
-                    case MenuItemType.Choice or MenuItemType.ChoiceBool or MenuItemType.Button:
-                        html += FormatValues(menu, menuItem, selectedItem!);
-                        break;
-
-                    case MenuItemType.Slider:
-                        html += FormatSlider(menu, menuItem);
-                        break;
-
-                    case MenuItemType.Input:
-                        html += FormatInput(menu, menuItem, selectedItem!);
-                        break;
-
-                    case MenuItemType.Bool:
-                        html += FormatBool(menu, menuItem);
-                        break;
-                }
+                    MenuItemType.Choice or MenuItemType.ChoiceBool or MenuItemType.Button 
+                        => FormatValues(menu, menuItem, selectedItem!),
+                    MenuItemType.Slider => FormatSlider(menu, menuItem),
+                    MenuItemType.Input => FormatInput(menu, menuItem, selectedItem!),
+                    MenuItemType.Bool => FormatBool(menu, menuItem),
+                    _ => ""
+                });
 
                 if (menuItem.Tail != null)
-                    html += menuItem.Tail;
+                    html.Append(menuItem.Tail);
 
-                html += "</font><br>";
+                html.Append("</font><br>");
             }
 
-            // Comment Section (like SwiftlyS2 - always shows between items and footer)
-            html += guideLine + "<br>";
+            // ===== BRANDING SECTION =====
+            html.Append(guideLine).Append("<br>");
+            html.Append($"<font class='fontSize-s'>Powered by {HtmlGradient.GenerateGradientText("zhw1nq", "#00FFFF", "#FFFFFF")}</font><br>");
+            
+            // Show custom comment if set
             if (!string.IsNullOrWhiteSpace(menu.DefaultComment))
             {
-                html += $"<font class='fontSize-s' color='#FFFFFF'>{menu.DefaultComment}</font><br>";
+                html.Append($"<font class='fontSize-s' color='#FFFFFF'>{menu.DefaultComment}</font><br>");
             }
 
-            // Footer with keybind instructions (use config values)
+            // ===== FOOTER SECTION =====
             if (!menu.HideFooter)
             {
-                html += $"<font class='fontSize-s' color='#FFFFFF'>";
-                html += $"<font color='{footerColor}'>Move:</font> {_config.Up}/{_config.Down}";
-                html += $" | <font color='{footerColor}'>Use:</font> {_config.Select}";
-                html += $" | <font color='{footerColor}'>Exit:</font> {_config.Exit}";
-                html += "</font>";
+                html.Append($"<font class='fontSize-s' color='#FFFFFF'>");
+                html.Append($"<font color='#FF69B4'>Move:</font> {GetKeyName(_config.Up)}/{GetKeyName(_config.Down)}");
+                html.Append($" | <font color='#FF69B4'>Use:</font> {GetKeyName(_config.Select)}");
+                html.Append($" | <font color='#FF69B4'>Back:</font> {GetKeyName(_config.Back)}");
+                html.Append($" | <font color='#FF69B4'>Exit:</font> {GetKeyName(_config.Exit)}");
+                html.Append("</font>");
             }
 
-            controller.PrintToCenterHtml(html);
+            controller.PrintToCenterHtml(html.ToString());
+        }
+
+        /// <summary>
+        /// Converts button name to actual key name for display.
+        /// </summary>
+        private static string GetKeyName(string buttonName)
+        {
+            return buttonName switch
+            {
+                "Forward" => "W",
+                "Back" => "S",
+                "Moveleft" => "A",
+                "Moveright" => "D",
+                "Jump" => "SPACE",
+                "Duck" => "CTRL",
+                "Speed" => "SHIFT",
+                "Use" => "E",
+                "Reload" => "R",
+                "Scoreboard" => "TAB",
+                "Inspect" => "F",
+                "Attack" => "MOUSE1",
+                "Attack2" => "MOUSE2",
+                _ => buttonName.ToUpper()
+            };
+        }
+
+        /// <summary>
+        /// Gets the plain text content of a menu item for gradient rendering.
+        /// </summary>
+        private static string GetMenuItemText(MenuBase menu, MenuItem menuItem, MenuItem? selectedItem)
+        {
+            var text = "";
+            
+            if (menuItem.Head != null)
+            {
+                // Strip HTML tags from head for plain text
+                text += System.Text.RegularExpressions.Regex.Replace(menuItem.Head.ToString() ?? "", "<.*?>", "");
+            }
+
+            text += menuItem.Type switch
+            {
+                MenuItemType.Choice or MenuItemType.ChoiceBool or MenuItemType.Button 
+                    => GetPlainTextFromValues(menuItem),
+                MenuItemType.Slider => GetPlainTextFromSlider(menuItem),
+                MenuItemType.Input => menuItem.DataString ?? "",
+                MenuItemType.Bool => menuItem.Data[0] == 1 ? "✔" : "✘",
+                _ => ""
+            };
+
+            return text;
+        }
+
+        private static string GetPlainTextFromValues(MenuItem menuItem)
+        {
+            if (menuItem.Values == null || menuItem.Values.Count == 0)
+                return "";
+            
+            var value = menuItem.Values[menuItem.Option];
+            if (value is MenuValue mv)
+                return mv.Value ?? "";
+            return value?.ToString() ?? "";
+        }
+
+        private static string GetPlainTextFromSlider(MenuItem menuItem)
+        {
+            return $"({new string('-', menuItem.Option)}|{new string('-', 10 - menuItem.Option)})";
         }
 
         private static string FormatValues(MenuBase menu, MenuItem menuItem, MenuItem selectedItem)
@@ -610,6 +682,9 @@ namespace Menu
 
         public void ShowScrollableMenu(CCSPlayerController controller, string title, List<MenuItem> items, Action<MenuButtons, MenuBase, MenuItem?>? callback, bool isSubmenu = false, bool freezePlayer = false, int visibleItems = 5, Dictionary<int, object>? defaultValues = null, bool disableDeveloper = false)
         {
+            // Force max 4 visible items for SwiftlyS2 style
+            visibleItems = Math.Min(visibleItems, 4);
+            
             MenuBase menu = null!;
             List<MenuItem> allItems = [.. items];
             List<MenuItem> filterList = items.Any(item => item.Type is not (MenuItemType.Spacer or MenuItemType.Text)) ? items.Where(item => item.Type is not (MenuItemType.Spacer or MenuItemType.Text)).ToList() : allItems;
