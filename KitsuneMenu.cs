@@ -525,9 +525,9 @@ namespace Menu
                 return "";
             
             var value = menuItem.Values[menuItem.Option];
-            if (value is MenuValue mv)
-                return mv.Value ?? "";
-            return value?.ToString() ?? "";
+            var rawText = value is MenuValue mv ? (mv.Value ?? "") : (value?.ToString() ?? "");
+            // Strip HTML tags
+            return System.Text.RegularExpressions.Regex.Replace(rawText, "<.*?>", "");
         }
 
         private static string GetPlainTextFromSlider(MenuItem menuItem)
