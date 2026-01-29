@@ -27,6 +27,7 @@ namespace Menu
 		private const string SOUND_CLICK = "sounds/ui_sounds/uif/01_default_select.vsnd_c";
 		private const string SOUND_DISABLED = "sounds/ui_sounds/uif/01_default_click_popup_close.vsnd_c";
 		private const string SOUND_BACK = "sounds/ui_sounds/uif/01_default_click_popup_close.vsnd_c";
+		private const string SOUND_OPEN = "sounds/ui_sounds/uif/10_chanui_vvip_gift_02.vsnd_c";
 		private const string SOUND_EXIT = "sounds/ui_sounds/uif/10_chanui_vvip_gift_01.vsnd_c";
 
 		private const string CONFIG_FILE = "menu_config.jsonc";
@@ -49,6 +50,7 @@ namespace Menu
 		public string Exit { get; set; } = "Scoreboard";
 
 		// Sound paths in config
+		public string OpenSound { get; set; } = SOUND_OPEN;
 		public string ScrollSound { get; set; } = SOUND_SCROLL;
 		public string ClickSound { get; set; } = SOUND_CLICK;
 		public string DisabledSound { get; set; } = SOUND_DISABLED;
@@ -130,6 +132,7 @@ namespace Menu
 					Exit = config.Exit;
 
 					// Load sound configurations
+					OpenSound = config.OpenSound ?? SOUND_OPEN;
 					ScrollSound = config.ScrollSound ?? SOUND_SCROLL;
 					ClickSound = config.ClickSound ?? SOUND_CLICK;
 					DisabledSound = config.DisabledSound ?? SOUND_DISABLED;
@@ -236,6 +239,7 @@ namespace Menu
     ""Exit"": ""Scoreboard"",
 
     // ===== SOUND CONFIGURATION =====
+    ""OpenSound"": ""sounds/ui_sounds/uif/01_default_click_popup.vsnd_c"",
     ""ScrollSound"": ""sounds/ui_sounds/uif/01_default_click_popup.vsnd_c"",
     ""ClickSound"": ""sounds/ui_sounds/uif/01_default_select.vsnd_c"",
     ""DisabledSound"": ""sounds/ui_sounds/uif/01_default_click_popup_close.vsnd_c"",
@@ -305,6 +309,7 @@ namespace Menu
 		public MenuButtons GetInputButton() => (MenuButtons)BUTTON_INPUT;
 
 		// Getter methods for sounds
+		public string GetOpenSound() => OpenSound;
 		public string GetScrollSound() => ScrollSound;
 		public string GetClickSound() => ClickSound;
 		public string GetDisabledSound() => DisabledSound;

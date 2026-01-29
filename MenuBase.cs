@@ -14,6 +14,8 @@ namespace Menu
         public MenuValue Title { get; set; } = title;
         public List<MenuItem> Items { get; set; } = [];
         public int Option { get; set; } = 0;
+        public int TotalSelectableItems { get; set; } = 0;
+        public int CurrentGlobalIndex { get; set; } = 0;
 
         #endregion
 

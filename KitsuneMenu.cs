@@ -372,7 +372,7 @@ namespace Menu
                 return;
 
             var html = new System.Text.StringBuilder();
-            
+
             // Configuration
             var guideLineColor = menu.GuideLineColor;
             var navigationColor = menu.NavigationMarkerColor;
@@ -382,8 +382,8 @@ namespace Menu
 
             // Calculate item counts
             var selectableItems = menu.Items.Where(i => i.Type is not (MenuItemType.Spacer or MenuItemType.Text)).ToList();
-            int currentIndex = selectedItem != null ? selectableItems.IndexOf(selectedItem) + 1 : 0;
-            int totalItems = selectableItems.Count;
+            int currentIndex = menu.CurrentGlobalIndex > 0 ? menu.CurrentGlobalIndex : (selectedItem != null ? selectableItems.IndexOf(selectedItem) + 1 : 0);
+            int totalItems = menu.TotalSelectableItems > 0 ? menu.TotalSelectableItems : selectableItems.Count;
             bool hasSelectableItems = totalItems > 0;
 
             // ===== TITLE SECTION =====
@@ -432,7 +432,7 @@ namespace Menu
                     html.Append("<br>");
                     continue;
                 }
-                
+
                 // Use scrolled text for non-selected items too
                 var itemText = GetMenuItemText(menu, menuItem, selectedItem);
                 html.Append($"<font color='#FFFFFF' class='fontSize-sm'>{itemText}</font>");
@@ -446,7 +446,7 @@ namespace Menu
             // ===== BRANDING SECTION =====
             html.Append(guideLine).Append("<br>");
             html.Append($"<font class='fontSize-s'>Powered by {HtmlGradient.GenerateGradientText("zhw1nq", "#00FFFF", "#FFFFFF")}</font><br>");
-            
+
             // Show custom comment if set
             if (!string.IsNullOrWhiteSpace(menu.DefaultComment))
             {
@@ -498,7 +498,7 @@ namespace Menu
         private static string GetMenuItemText(MenuBase menu, MenuItem menuItem, MenuItem? selectedItem)
         {
             var text = "";
-            
+
             if (menuItem.Head != null)
             {
                 // Strip HTML tags from head for plain text
@@ -507,7 +507,7 @@ namespace Menu
 
             text += menuItem.Type switch
             {
-                MenuItemType.Choice or MenuItemType.ChoiceBool or MenuItemType.Button 
+                MenuItemType.Choice or MenuItemType.ChoiceBool or MenuItemType.Button
                     => GetPlainTextFromValues(menuItem),
                 MenuItemType.Slider => GetPlainTextFromSlider(menuItem),
                 MenuItemType.Input => menuItem.DataString ?? "",
@@ -523,7 +523,7 @@ namespace Menu
         {
             if (menuItem.Values == null || menuItem.Values.Count == 0)
                 return "";
-            
+
             var value = menuItem.Values[menuItem.Option];
             var rawText = value is MenuValue mv ? (mv.Value ?? "") : (value?.ToString() ?? "");
             // Strip HTML tags
@@ -643,6 +643,9 @@ namespace Menu
 
         private static void _ShowMenu(CCSPlayerController controller, MenuBase menu, Action<MenuButtons, MenuBase, MenuItem?> callback, bool isSubmenu = false, bool freezePlayer = false)
         {
+            // Play open sound
+            PlayMenuSound(controller, _config.GetOpenSound());
+
             var menus = Menus.GetOrAdd(controller, _ => new Stack<MenuBase>());
 
             menu.Callback = callback;
@@ -674,7 +677,7 @@ namespace Menu
         {
             // Force max 4 visible items for SwiftlyS2 style
             visibleItems = Math.Min(visibleItems, 4);
-            
+
             MenuBase menu = null!;
             List<MenuItem> allItems = [.. items];
             List<MenuItem> filterList = items.Any(item => item.Type is not (MenuItemType.Spacer or MenuItemType.Text)) ? items.Where(item => item.Type is not (MenuItemType.Spacer or MenuItemType.Text)).ToList() : allItems;
@@ -819,11 +822,13 @@ namespace Menu
             void UpdateMenuView()
             {
                 menu.Items.Clear();
-                
+
                 // Use plain title for SwiftlyStyle (it handles item count separately with proper formatting)
                 if (menu.UseSwiftlyStyle)
                 {
                     menu.Title = new MenuValue(title);
+                    menu.TotalSelectableItems = filterList.Count;
+                    menu.CurrentGlobalIndex = filterList.Count > 0 ? filterList.IndexOf(allItems[currentIndex]) + 1 : 0;
                 }
                 else
                 {
